@@ -285,7 +285,10 @@ order by month;
 -- что является одной из крупнейших выборок в таблице
 -- однако одного месяца все арвно недостаточно, чтобы считать 19.5% устойчивым результатом и планировать выбор
 -- в августе самая минимальная конверсия - 7.3%, выборка содержит 41 отклик.
--- в таблице присутствуют не все дни августа, поэтому этот месяц не можем считать как полный и можем исключить из выводов
+-- в таблице присутствуют не все дни августа(до 15го), поэтому этот месяц не можем считать как полный и можем исключить из выводов
+-- проверка полноты августа:
+select max(created_at) as last_response_at
+from responses;
 
 -- ЗАДАНИЕ Д2
 -- Запрос: таблица по направлениям (вакансии, отклики, приглашения,
@@ -294,7 +297,7 @@ select v.professional_role,
 count(distinct v.vacancy_id) as vacancies_count,
 count(r.response_id) as responses_count,
 count(r.response_id) filter (where r.status = 'invited') as invited_count,
-count(r.response_id)/nullif(count(distinct v.vacancy_id),0) as responses_per_vacancy,
+round(1.0*count(r.response_id)/nullif(count(distinct v.vacancy_id),0),1) as responses_per_vacancy,
 round(100.0*(count(r.response_id) filter (where r.status = 'invited'))/nullif(count(r.response_id),0),1) as conv
 from vacancies as v
 left join responses as r
@@ -306,7 +309,7 @@ group by v.professional_role;
 --    с наибольшей конверсией?
 -- не совпадает: направление с наибольшим числом вакансий (16) - аналитик данных, направление с наибольшей конверсией (35.9%) - тестировщик
 -- 2. Какое направление выбрать и почему (опираясь на два столбца):
--- лучше выбрать направление тестировщик, так как конверсия выше, а количсетво откликов на вакансию одно из минимальных (5)
+-- лучше выбрать направление тестировщик, так как конверсия выше, а количсетво откликов на вакансию одно из минимальных (5.6)
 --  такое сочетание может указывать на более высокую вероятность получить приглашение при относительно небольшой конкуренции
 -- 3. Оговорка к выводу:
 -- данные не показывают квалификацию и число уникальных соискателей
@@ -356,8 +359,8 @@ group by v.professional_role;
  
 select v.professional_role,
 count(distinct v.vacancy_id) as vacancies_count,
-sum(v.salary_from) as total_salary,
-round(sum(coalesce(r.responses_count, 0))::numeric / nullif(count(distinct v.vacancy_id), 0), 1) as responses_per_vacancy
+round(avg(v.salary_from), 0) as avg_salary_from,
+round(1.0*sum(coalesce(r.responses_count, 0))::numeric / nullif(count(distinct v.vacancy_id), 0), 1) as responses_per_vacancy
 from vacancies as v
 left join (
 	select vacancy_id,
